@@ -1,57 +1,39 @@
 import pickle
-import pandas as pd
 import os
+import numpy as np
 
-# Ruta al modelo entrenado
-MODEL_PATH = os.path.join('models', 'model.pkl')
+MODEL_DIR = os.path.join('models')
 
-def cargar_modelo():
-    """ Carga el modelo entrenado desde el archivo .pkl """
+ESTACIONES = ['KENNEDY', 'LAS FERIAS', 'CARVAJAL', 'FONTIBON', 'PTE ARANDA', 'USAQUEN', 'SUBA']
+
+def cargar_modelo(estacion):
+    """ Carga el modelo correspondiente a una estación. """
+    model_path = os.path.join(MODEL_DIR, f'model_{estacion}.pkl')
+    if os.path.exists(model_path):
+        with open(model_path, 'rb') as file:
+            return pickle.load(file)
+    else:
+        raise FileNotFoundError(f"Modelo no encontrado para la estación {estacion}")
+
+def predecir(data):
+    """ Realiza la predicción del nivel de PM2.5 para una estación específica. """
+    biciusuarios = data.get('biciusuarios')
+    estacion = data.get('estacion')
+
+    if not biciusuarios or not estacion:
+        return {'error': 'Los campos biciusuarios y estacion son obligatorios'}
+
+    if estacion not in ESTACIONES:
+        return {'error': f'La estación {estacion} no está disponible para predicción'}
+
     try:
-        with open(MODEL_PATH, 'rb') as file:
-            model = pickle.load(file)
-        return model
-    except FileNotFoundError:
-        print(f"Error: No se encontró el archivo {MODEL_PATH}. Asegúrate de haber entrenado el modelo.")
-        return None
+        modelo = cargar_modelo(estacion)
+        prediccion = modelo.predict(np.array([[biciusuarios]]))[0]
+        return prediccion
+    except Exception as e:
+        return {'error': str(e)}
 
-def predecir(datos):
-    """
-    Realiza la predicción de PM2.5 basado en el promedio de biciusuarios.
-    
-    Args:
-        datos: Puede ser un número o un diccionario con una clave 'biciusuarios'
-    
-    Returns:
-        Predicción del nivel de PM2.5 o mensaje de error
-    """
-    # Extraer el valor de biciusuarios del diccionario si es un diccionario
-    if isinstance(datos, dict) and 'biciusuarios' in datos:
-        prom_biciusuarios = float(datos['biciusuarios'])
-    else:
-        # Si no es diccionario, asumir que es directamente el valor numérico
-        try:
-            prom_biciusuarios = float(datos)
-        except (ValueError, TypeError):
-            return {"error": "Formato de datos invalido. Se esperaba un número o un diccionario con 'biciusuarios'"}
-    
-    modelo = cargar_modelo()
-    if modelo:
-        # Convertir a DataFrame para que sea compatible con el modelo
-        data = pd.DataFrame({'PromBiciusuarios': [prom_biciusuarios]})
-        prediccion = modelo.predict(data)
-        return round(float(prediccion[0]), 2)
-    else:
-        return {"error": "Modelo no cargado. Verifica el archivo model.pkl."}
-
-# Prueba rápida (Eliminar o comentar en producción)
 if __name__ == "__main__":
-    # Prueba con un valor ejemplo
-    ejemplo = 100  # Número de biciusuarios promedio
+    ejemplo = {'biciusuarios': 50, 'estacion': 'KENNEDY'}
     resultado = predecir(ejemplo)
-    print(f"Predicción de PM2.5 para {ejemplo} biciusuarios: {resultado}")
-    
-    # Prueba con un diccionario (como vendría de app.py)
-    ejemplo_dict = {'biciusuarios': 150}
-    resultado_dict = predecir(ejemplo_dict)
-    print(f"Predicción de PM2.5 para {ejemplo_dict['biciusuarios']} biciusuarios (desde dict): {resultado_dict}")
+    print("Resultado de la predicción:", resultado)

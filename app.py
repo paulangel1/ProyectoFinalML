@@ -1,32 +1,47 @@
 from flask import Flask, request, jsonify, render_template
-from prediction import predecir
+import pickle
+import os
+
+MODEL_PATH = os.path.join('models')
 
 app = Flask(__name__)
 
+ESTACIONES = ['KENNEDY', 'LAS FERIAS', 'CARVAJAL', 'FONTIBON', 'PTE ARANDA', 'USAQUEN', 'SUBA']
+
+modelos = {}
+for estacion in ESTACIONES:
+    modelo_path = os.path.join(MODEL_PATH, f'model_{estacion}.pkl')
+    try:
+        with open(modelo_path, 'rb') as file:
+            modelos[estacion] = pickle.load(file)
+    except FileNotFoundError:
+        print(f"Modelo para {estacion} no encontrado. Asegúrese de haber entrenado y guardado los modelos correctamente.")
+
 @app.route('/')
 def home():
-    return render_template('pagina.html')
+    return render_template('pagina.html', estaciones=ESTACIONES)
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Obtener los datos de la solicitud
         data = request.get_json()
-        
-        # Verificar si los datos son válidos
-        if not data or 'biciusuarios' not in data:
-            return jsonify({'error': 'Se requiere el campo biciusuarios'}), 400
-        
-        # Realizar la predicción
-        resultado = predecir(data)
-        
-        # Verificar si hay un error en la predicción
-        if isinstance(resultado, dict) and 'error' in resultado:
-            return jsonify(resultado), 400
-        
-        # Devolver el resultado como JSON
-        return jsonify({'prediccion': resultado})
-    
+
+        if not data or 'biciusuarios' not in data or 'estacion' not in data:
+            return jsonify({'error': 'Se requieren los campos biciusuarios y estacion'}), 400
+
+        biciusuarios = data['biciusuarios']
+        estacion = data['estacion'].upper()
+
+        if estacion not in modelos:
+            return jsonify({'error': f'La estación {estacion} no está disponible para predicción.'}), 400
+
+        modelo = modelos[estacion]
+        prediccion = modelo.predict([[biciusuarios]])[0]
+
+        prediccion = round(prediccion, 4)
+
+        return jsonify({'prediccion': prediccion})
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
