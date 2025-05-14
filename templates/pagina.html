@@ -22,6 +22,21 @@
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        .menu {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .menu a {
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .menu a:hover {
+            background-color: #2980b9;
+        }
         .form-group {
             margin-bottom: 15px;
         }
@@ -57,13 +72,25 @@
             text-align: center;
             display: none;
         }
-         </style>
+        .input-help {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 3px;
+        }
+        .error {
+            color: #e74c3c;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+        input:invalid {
+            border-color: #e74c3c;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Predicción de Niveles de PM2.5 por Estación</h1>
-        <p>Este modelo predice los niveles promedio de PM2.5 en diferentes estaciones de Bogotá basado en el número de biciusuarios.</p>
-        
         <div class="form-group">
             <label for="estacion">Seleccione una estación:</label>
             <select id="estacion">
@@ -76,31 +103,65 @@
                 <option value="SUBA">Suba</option>
             </select>
         </div>
-
         <div class="form-group">
             <label for="biciusuarios">Número de Biciusuarios:</label>
             <input type="number" id="biciusuarios" min="0" placeholder="Ingrese el número promedio de biciusuarios">
         </div>
-        
+        <div class="form-group">
+            <label for="periodo">Periodo (Año):</label>
+            <input type="number" id="periodo" min="2019" max="2023" step="1" placeholder="Ingrese el año del periodo">
+            <div class="input-help">Seleccione un año entre 2019 y 2023</div>
+            <div id="error-periodo" class="error">Por favor, ingrese un año entre 2019 y 2023</div>
+        </div>
         <button onclick="realizarPrediccion()">Predecir Niveles de PM2.5</button>
-        
         <div id="resultado" class="result">
             <h3>Resultado de la Predicción:</h3>
             <p id="valorPrediccion"></p>
-            <p id="interpretacion"></p>
         </div>
     </div>
-     <script>
+
+    <script>
+        // Al cargar la página, establecer un valor predeterminado en el campo período
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('periodo').value = 2023;
+        });
+
+        // Validar el campo de periodo cuando cambie su valor
+        document.getElementById('periodo').addEventListener('input', function(e) {
+            const periodo = parseInt(e.target.value);
+            const errorPeriodo = document.getElementById('error-periodo');
+            
+            if (isNaN(periodo) || periodo < 2019 || periodo > 2023) {
+                errorPeriodo.style.display = 'block';
+                e.target.setCustomValidity('El año debe estar entre 2019 y 2023');
+            } else {
+                errorPeriodo.style.display = 'none';
+                e.target.setCustomValidity('');
+            }
+        });
+
         function realizarPrediccion() {
             const biciusuarios = document.getElementById('biciusuarios').value;
             const estacion = document.getElementById('estacion').value;
+            const periodoInput = document.getElementById('periodo');
+            const periodo = parseInt(periodoInput.value);
 
             if (!biciusuarios || isNaN(biciusuarios) || biciusuarios < 0) {
                 alert('Por favor, ingrese un número válido de biciusuarios');
                 return;
             }
 
-            const data = { biciusuarios: parseFloat(biciusuarios), estacion: estacion };
+            if (isNaN(periodo) || periodo < 2019 || periodo > 2023) {
+                document.getElementById('error-periodo').style.display = 'block';
+                periodoInput.focus();
+                return;
+            }
+
+            const data = { 
+                biciusuarios: parseFloat(biciusuarios), 
+                estacion: estacion, 
+                periodo: periodo 
+            };
 
             fetch('/predict', {
                 method: 'POST',
@@ -112,9 +173,8 @@
             .then(response => response.json())
             .then(result => {
                 document.getElementById('resultado').style.display = 'block';
-         if (result.error) {
+                if (result.error) {
                     document.getElementById('valorPrediccion').textContent = `Error: ${result.error}`;
-                    document.getElementById('interpretacion').textContent = '';
                 } else {
                     const prediccion = result.prediccion;
                     document.getElementById('valorPrediccion').textContent = `Nivel promedio de PM2.5 estimado en ${estacion}: ${prediccion} µg/m³`;
@@ -124,7 +184,6 @@
                 console.error('Error:', error);
                 document.getElementById('resultado').style.display = 'block';
                 document.getElementById('valorPrediccion').textContent = 'Error al conectar con el servidor';
-                document.getElementById('interpretacion').textContent = '';
             });
         }
     </script>

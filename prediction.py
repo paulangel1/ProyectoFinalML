@@ -1,39 +1,61 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 import pickle
 import os
-import numpy as np
 
+DATA_PATH = os.path.join('data', 'NivelesPorAño.csv')
 MODEL_DIR = os.path.join('models')
+os.makedirs(MODEL_DIR, exist_ok=True)
 
 ESTACIONES = ['KENNEDY', 'LAS FERIAS', 'CARVAJAL', 'FONTIBON', 'PTE ARANDA', 'USAQUEN', 'SUBA']
 
-def cargar_modelo(estacion):
-    """ Carga el modelo correspondiente a una estación. """
-    model_path = os.path.join(MODEL_DIR, f'model_{estacion}.pkl')
-    if os.path.exists(model_path):
-        with open(model_path, 'rb') as file:
-            return pickle.load(file)
-    else:
-        raise FileNotFoundError(f"Modelo no encontrado para la estación {estacion}")
+def cargar_datos(file_path):
+    """ Carga el dataset desde un archivo CSV y procesa los datos. """
+    df = pd.read_csv(file_path, sep=';')
+    estaciones_presentes = [est for est in ESTACIONES if est in df.columns]
 
-def predecir(data):
-    """ Realiza la predicción del nivel de PM2.5 para una estación específica. """
-    biciusuarios = data.get('biciusuarios')
-    estacion = data.get('estacion')
+    if not estaciones_presentes:
+        raise ValueError(f"Ninguna de las estaciones {ESTACIONES} está presente en el DataFrame.")
 
-    if not biciusuarios or not estacion:
-        return {'error': 'Los campos biciusuarios y estacion son obligatorios'}
+    df["Promedio_PM25"] = df[estaciones_presentes].mean(axis=1)
 
-    if estacion not in ESTACIONES:
-        return {'error': f'La estación {estacion} no está disponible para predicción'}
+    df["Inverso_Biciusuarios"] = 1 / df["PromBiciusuarios"].replace(0, float('inf'))
 
-    try:
-        modelo = cargar_modelo(estacion)
-        prediccion = modelo.predict(np.array([[biciusuarios]]))[0]
-        return prediccion
-    except Exception as e:
-        return {'error': str(e)}
+    return df
+
+
+def entrenar_modelos_por_estacion(df):
+    """ Entrena un modelo independiente por estación/localidad considerando el año. """
+    modelos = {}
+
+    for estacion in ESTACIONES:
+        if estacion in df.columns:
+            print(f"Entrenando modelo para {estacion}...")
+
+            X = df[['PromBiciusuarios', 'Periodo']]
+            y = df[estacion]
+
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+            modelo = LinearRegression()
+            modelo.fit(X_train, y_train)
+
+            modelo_path = os.path.join(MODEL_DIR, f'model_{estacion}.pkl')
+            with open(modelo_path, 'wb') as file:
+                pickle.dump(modelo, file)
+
+            modelos[estacion] = modelo_path
+            print(f"Modelo para {estacion} guardado en {modelo_path}")
+
+    return modelos
+
+def main():
+    print("Cargando datos...")
+    datos = cargar_datos(DATA_PATH)
+
+    print("Entrenando modelos por estación...")
+    entrenar_modelos_por_estacion(datos)
 
 if __name__ == "__main__":
-    ejemplo = {'biciusuarios': 50, 'estacion': 'KENNEDY'}
-    resultado = predecir(ejemplo)
-    print("Resultado de la predicción:", resultado)
+    main()

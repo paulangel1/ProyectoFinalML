@@ -18,26 +18,46 @@ for estacion in ESTACIONES:
         print(f"Modelo para {estacion} no encontrado. Asegúrese de haber entrenado y guardado los modelos correctamente.")
 
 @app.route('/')
-def home():
+def menu():
+    return render_template('menu.html')
+
+@app.route('/pagina')
+def pagina():
     return render_template('pagina.html', estaciones=ESTACIONES)
+
+@app.route('/entendimiento')
+def entendimiento():
+    return render_template('entendimiento.html')
+
+@app.route('/ingenieriadatos')
+def ingenieria_datos():
+    return render_template('IngenieriaDatos.html')
+
+@app.route('/ingenieriamodelo')
+def ingenieria_modelo():
+    return render_template('ingenieriamodelo.html')
+
+@app.route('/evaluacion')
+def evaluacion():
+    return render_template('evaluacion.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
         data = request.get_json()
 
-        if not data or 'biciusuarios' not in data or 'estacion' not in data:
-            return jsonify({'error': 'Se requieren los campos biciusuarios y estacion'}), 400
+        if not data or 'biciusuarios' not in data or 'estacion' not in data or 'periodo' not in data:
+            return jsonify({'error': 'Se requieren los campos biciusuarios, estacion y periodo'}), 400
 
         biciusuarios = data['biciusuarios']
         estacion = data['estacion'].upper()
+        periodo = data['periodo']
 
         if estacion not in modelos:
             return jsonify({'error': f'La estación {estacion} no está disponible para predicción.'}), 400
 
         modelo = modelos[estacion]
-        prediccion = modelo.predict([[biciusuarios]])[0]
-
+        prediccion = modelo.predict([[biciusuarios, periodo]])[0]
         prediccion = round(prediccion, 4)
 
         return jsonify({'prediccion': prediccion})

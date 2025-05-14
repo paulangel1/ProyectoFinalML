@@ -19,22 +19,25 @@ def cargar_datos(file_path):
     if not estaciones_presentes:
         raise ValueError(f"Ninguna de las estaciones {ESTACIONES} está presente en el DataFrame.")
 
+    # Crear columna Promedio_PM25 como promedio de las estaciones presentes
     df["Promedio_PM25"] = df[estaciones_presentes].mean(axis=1)
 
+    # Crear la columna Inverso_Biciusuarios
     df["Inverso_Biciusuarios"] = 1 / df["PromBiciusuarios"].replace(0, float('inf'))
 
     return df
 
 
 def entrenar_modelos_por_estacion(df):
-    """ Entrena un modelo independiente por estación/localidad. """
+    """ Entrena un modelo independiente por estación/localidad considerando el año. """
     modelos = {}
 
     for estacion in ESTACIONES:
         if estacion in df.columns:
             print(f"Entrenando modelo para {estacion}...")
 
-            X = df[['PromBiciusuarios']]
+            # Variables predictoras incluyen Biciusuarios y Periodo (año)
+            X = df[['PromBiciusuarios', 'Periodo']]
             y = df[estacion]
 
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -58,6 +61,7 @@ def main():
 
     print("Entrenando modelos por estación...")
     entrenar_modelos_por_estacion(datos)
+
 
 if __name__ == "__main__":
     main()
