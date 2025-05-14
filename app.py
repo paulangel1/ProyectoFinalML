@@ -17,6 +17,7 @@ for estacion in ESTACIONES:
     except FileNotFoundError:
         print(f"Modelo para {estacion} no encontrado. Asegúrese de haber entrenado y guardado los modelos correctamente.")
 
+
 @app.route('/')
 def menu():
     return render_template('menu.html')
@@ -40,6 +41,7 @@ def ingenieria_modelo():
 @app.route('/evaluacion')
 def evaluacion():
     return render_template('evaluacion.html')
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
