@@ -4,60 +4,53 @@ from sklearn.linear_model import LinearRegression
 import pickle
 import os
 
+# Rutas
 DATA_PATH = os.path.join('data', 'NivelesPorAño.csv')
-MODEL_DIR = os.path.join('models')
+MODEL_DIR = 'models'
 os.makedirs(MODEL_DIR, exist_ok=True)
 
+# Definir las estaciones
 ESTACIONES = ['KENNEDY', 'LAS FERIAS', 'CARVAJAL', 'FONTIBON', 'PTE ARANDA', 'USAQUEN', 'SUBA']
 
-
+# Cargar datos
 def cargar_datos(file_path):
-    """ Carga el dataset desde un archivo CSV y procesa los datos. """
     df = pd.read_csv(file_path, sep=';')
-    estaciones_presentes = [est for est in ESTACIONES if est in df.columns]
 
+    # Verificar si las estaciones están presentes
+    estaciones_presentes = [est for est in ESTACIONES if est in df.columns]
     if not estaciones_presentes:
         raise ValueError(f"Ninguna de las estaciones {ESTACIONES} está presente en el DataFrame.")
 
-    df["Promedio_PM25"] = df[estaciones_presentes].mean(axis=1)
+    return df, estaciones_presentes
 
-    df["Inverso_Biciusuarios"] = 1 / df["PromBiciusuarios"].replace(0, float('inf'))
+# Entrenar modelo por estación
+def entrenar_modelo(df, estacion):
+    X = df[['PromBiciusuarios', 'Periodo']]
+    y = df[estacion]
 
-    return df
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
+    modelo = LinearRegression()
+    modelo.fit(X_train, y_train)
 
-def entrenar_modelos_por_estacion(df):
-    """ Entrena un modelo independiente por estación/localidad. """
-    modelos = {}
+    return modelo
 
-    for estacion in ESTACIONES:
-        if estacion in df.columns:
-            print(f"Entrenando modelo para {estacion}...")
+# Guardar modelo
+def guardar_modelo(model, estacion):
+    model_path = os.path.join(MODEL_DIR, f'model_{estacion.lower()}.pkl')
+    with open(model_path, 'wb') as file:
+        pickle.dump(model, file)
 
-            X = df[['PromBiciusuarios']]
-            y = df[estacion]
-
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-            modelo = LinearRegression()
-            modelo.fit(X_train, y_train)
-
-            modelo_path = os.path.join(MODEL_DIR, f'model_{estacion}.pkl')
-            with open(modelo_path, 'wb') as file:
-                pickle.dump(modelo, file)
-
-            modelos[estacion] = modelo_path
-            print(f"Modelo para {estacion} guardado en {modelo_path}")
-
-    return modelos
-
-
+# Ejecutar entrenamiento y guardado para cada estación
 def main():
     print("Cargando datos...")
-    datos = cargar_datos(DATA_PATH)
+    df, estaciones_presentes = cargar_datos(DATA_PATH)
 
-    print("Entrenando modelos por estación...")
-    entrenar_modelos_por_estacion(datos)
+    for estacion in estaciones_presentes:
+        print(f"Entrenando modelo para {estacion}...")
+        modelo = entrenar_modelo(df, estacion)
+        print(f"Guardando modelo para {estacion}...")
+        guardar_modelo(modelo, estacion)
 
 if __name__ == "__main__":
     main()
