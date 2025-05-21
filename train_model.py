@@ -21,19 +21,55 @@ def cargar_datos(file_path):
     if not estaciones_presentes:
         raise ValueError(f"Ninguna de las estaciones {ESTACIONES} está presente en el DataFrame.")
 
+<<<<<<< HEAD
     return df, estaciones_presentes
 
 # Entrenar modelo por estación
 def entrenar_modelo(df, estacion):
     X = df[['PromBiciusuarios', 'Periodo']]
     y = df[estacion]
+=======
+    # Crear columna Promedio_PM25 como promedio de las estaciones presentes
+    df["Promedio_PM25"] = df[estaciones_presentes].mean(axis=1)
+
+    # Crear la columna Inverso_Biciusuarios
+    df["Inverso_Biciusuarios"] = 1 / df["PromBiciusuarios"].replace(0, float('inf'))
+>>>>>>> 93192b8a138ec015f8271419180a8693280c9282
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     modelo = LinearRegression()
     modelo.fit(X_train, y_train)
 
+<<<<<<< HEAD
     return modelo
+=======
+def entrenar_modelos_por_estacion(df):
+    """ Entrena un modelo independiente por estación/localidad considerando el año. """
+    modelos = {}
+
+    for estacion in ESTACIONES:
+        if estacion in df.columns:
+            print(f"Entrenando modelo para {estacion}...")
+
+            # Variables predictoras incluyen Biciusuarios y Periodo (año)
+            X = df[['PromBiciusuarios', 'Periodo']]
+            y = df[estacion]
+
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+            modelo = LinearRegression()
+            modelo.fit(X_train, y_train)
+
+            modelo_path = os.path.join(MODEL_DIR, f'model_{estacion}.pkl')
+            with open(modelo_path, 'wb') as file:
+                pickle.dump(modelo, file)
+
+            modelos[estacion] = modelo_path
+            print(f"Modelo para {estacion} guardado en {modelo_path}")
+
+    return modelos
+>>>>>>> 93192b8a138ec015f8271419180a8693280c9282
 
 # Guardar modelo
 def guardar_modelo(model, estacion):
@@ -51,6 +87,7 @@ def main():
         modelo = entrenar_modelo(df, estacion)
         print(f"Guardando modelo para {estacion}...")
         guardar_modelo(modelo, estacion)
+
 
 if __name__ == "__main__":
     main()
