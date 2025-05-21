@@ -18,6 +18,7 @@ for estacion in ESTACIONES:
         print(f"Modelo para {estacion} no encontrado. Asegúrese de haber entrenado y guardado los modelos correctamente.")
 
 
+
 @app.route('/')
 def menu():
     return render_template('menu.html')
@@ -67,5 +68,8 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
