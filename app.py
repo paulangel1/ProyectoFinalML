@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, url_for
 import pickle
 import os
+import numpy as np
 
 MODEL_PATH = os.path.join('models')
 
@@ -22,6 +23,12 @@ for estacion in ESTACIONES:
 @app.route('/')
 def menu():
     return render_template('menu.html')
+
+@app.route('/refuerzo')
+def index():
+    q_table = np.load("models/q_table.npy")
+    return render_template("index.html", q_table=q_table.tolist())
+
 
 @app.route('/pagina')
 def pagina():

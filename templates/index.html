@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Aprendizaje por Refuerzo - Agente PM2.5</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        img {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aprendizaje por Refuerzo</h1>
+        <p>Visualización del entrenamiento del agente para predecir niveles de PM2.5 usando biciusuarios como variable.</p>
+
+        <h2>Gráfico de Recompensas</h2>
+        <img src="{{ url_for('static', filename='recompensas.png') }}" alt="Gráfico de recompensas">
+
+        <h2>Q-Table Aprendida</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    {% for i in range(q_table[0]|length) %}
+                        <th>Acción {{ i }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in q_table %}
+                    <tr>
+                        <td>{{ loop.index0 }}</td>
+                        {% for value in row %}
+                            <td>{{ '%.3f'|format(value) }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
